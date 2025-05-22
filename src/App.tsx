@@ -145,7 +145,7 @@ function App() {
   const handleCardFlip = async (id: number | string, index: number) => {
     const card = cards[index];
     const message = "Give me 1 short sentence example how to use the English word: " + card.key +
-     " follow the format: English sentence + down line + /translated to Vietnamese sentence/"
+     " follow the format: English sentence/translated to Vietnamese sentence/"
     console.log("Message: " + message);
     try {
       const response = await callGemini(message);
