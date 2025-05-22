@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { FlashcardArray } from "react-quizlet-flashcard";
+import { ClimbingBoxLoader, ClipLoader } from "react-spinners";
 import './App.css'
 
 function render(title: string, content: string) {
@@ -89,6 +90,12 @@ function wordsToCards(words: Word[]) {
   }));
 }
 
+const override: CSSProperties = {
+  display: "block",
+  margin: "0 auto",
+  borderColor: "#000000",
+};
+
 function App() {
   const docId = "1cba4NFq-IbZNaNnMw0WQDern05x3rD0wwhIYTEPlk48";
   const [cards, setCards] = useState<any[]>([]);
@@ -109,8 +116,23 @@ function App() {
       .catch((err) => console.log(err.message));
   }, [docId]);
 
+  if (cards.length === 0) {
+    return (
+      <div className="sweet-loading">
+        <ClimbingBoxLoader 
+          color={'#000000'}
+          loading={true}
+          cssOverride={override}
+          size={15}
+          aria-label="Loading Spinner"
+          data-testid="loader"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <div>  
       <FlashcardArray cards={cards}/>
     </div>
   );
