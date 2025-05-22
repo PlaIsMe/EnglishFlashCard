@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { FlashcardArray } from "react-quizlet-flashcard";
-import { ClimbingBoxLoader, ClipLoader } from "react-spinners";
+import { ClimbingBoxLoader } from "react-spinners";
 import './App.css'
 
 function render(title: string, content: string) {
