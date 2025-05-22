@@ -9,3 +9,8 @@
 npm run build
 firebase deploy
 ```
+
+- To use Gemini, create an .env file
+```
+VITE_GEMINI_API_KEY=<your_api_key>
+```

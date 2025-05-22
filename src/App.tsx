@@ -2,8 +2,9 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { FlashcardArray } from "react-quizlet-flashcard";
 import { ClimbingBoxLoader } from "react-spinners";
 import './App.css'
+import { callGemini } from './GeminiAPI';
 
-function render(title: string, content: string) {
+function render(title: string, content: string, englishClause: string = "", vietnameseClause: string = "") {
   return (
     <div
       style={{
@@ -26,10 +27,32 @@ function render(title: string, content: string) {
         {title}
       </h3>
       <p style={{ fontSize: "16px", margin: 0 }}>{content}</p>
+      {englishClause.length !== 0 && vietnameseClause.length !== 0 && (
+        <>
+          <p
+            style={{
+              fontSize: "18px",
+              marginTop: "50px",
+              marginBottom: "0px",
+              color: "#333",
+            }}
+          >
+            {englishClause}
+          </p>
+          <p
+            style={{
+              fontSize: "12px",
+              marginTop: "0px",
+              color: "#333",
+            }}
+          >
+            /{vietnameseClause}/
+          </p>
+        </>
+      )}
     </div>
   );
 }
-
 
 type Word = {
   english: string;
@@ -87,6 +110,9 @@ function wordsToCards(words: Word[]) {
     id: index + 1,
     frontHTML: render(word.tag, word.english),
     backHTML: render(word.tag, word.description.charAt(0).toUpperCase() + word.description.slice(1)),
+    key: word.english,
+    tag: word.tag,
+    description: word.description.charAt(0).toUpperCase() + word.description.slice(1)
   }));
 }
 
@@ -94,7 +120,7 @@ const override: CSSProperties = {
   display: "block",
   margin: "0 auto",
   borderColor: "#000000",
-};
+};  
 
 function App() {
   const docId = "1cba4NFq-IbZNaNnMw0WQDern05x3rD0wwhIYTEPlk48";
@@ -116,6 +142,28 @@ function App() {
       .catch((err) => console.log(err.message));
   }, [docId]);
 
+  const handleCardFlip = async (id: number | string, index: number) => {
+    const card = cards[index];
+    const message = "Give me 1 short sentence example how to use the English word: " + card.key +
+     " follow the format: English sentence + down line + /translated to Vietnamese sentence/"
+    console.log("Message: " + message);
+    try {
+      const response = await callGemini(message);
+      const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parts = text.trim().replace(/\/$/, '').split('/');
+      const englishClause = parts[0];
+      const vietnameseClause = parts[1];
+      setCards(prevCards =>
+        prevCards.map(card =>
+          card.id === id ? { ...card, backHTML: render(card.tag, card.description, englishClause, vietnameseClause) } : card
+        )
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+
   if (cards.length === 0) {
     return (
       <div className="sweet-loading">
@@ -132,8 +180,8 @@ function App() {
   }
 
   return (
-    <div>  
-      <FlashcardArray cards={cards}/>
+    <div>
+      <FlashcardArray cards={cards} onCardFlip={handleCardFlip}/>
     </div>
   );
 }
