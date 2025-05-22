@@ -85,12 +85,11 @@ function wordsToCards(words: Word[]) {
   return shuffled.map((word, index) => ({
     id: index + 1,
     frontHTML: render(word.tag, word.english),
-    backHTML: render(word.tag, word.description),
+    backHTML: render(word.tag, word.description.charAt(0).toUpperCase() + word.description.slice(1)),
   }));
 }
 
 function App() {
-  const [error, setError] = useState<string>("");
   const docId = "1cba4NFq-IbZNaNnMw0WQDern05x3rD0wwhIYTEPlk48";
   const [cards, setCards] = useState<any[]>([]);
 
@@ -107,7 +106,7 @@ function App() {
         const cardData = wordsToCards(words);
         setCards(cardData);
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => console.log(err.message));
   }, [docId]);
 
   return (
