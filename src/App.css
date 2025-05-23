@@ -47,3 +47,13 @@ body {
 .read-the-docs {
   color: #888;
 }
+
+.FlashcardArrayWrapper {
+  width: 20vw !important;
+}
+
+@media (max-width: 625px) {
+  .FlashcardArrayWrapper {
+    width: 80vw !important;
+  }
+}

@@ -163,6 +163,12 @@ function App() {
     }
   };
 
+  const isMobile = window.innerWidth <= 768;
+
+  // const wrapperStyle = {
+  //   width: isMobile ? '80vw' : '100%',
+  // };
+
 
   if (cards.length === 0) {
     return (
