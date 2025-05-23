@@ -26,7 +26,7 @@ function render(title: string, content: string, englishClause: string = "", viet
       >
         {title}
       </h3>
-      <p style={{ fontSize: "16px", margin: 0 }}>{content}</p>
+      <p style={{ fontSize: "16px", margin: 0, lineHeight: "1" }}>{content}</p>
       {englishClause.length !== 0 && vietnameseClause.length !== 0 && (
         <>
           <p
@@ -35,6 +35,7 @@ function render(title: string, content: string, englishClause: string = "", viet
               marginTop: "50px",
               marginBottom: "0px",
               color: "#333",
+              lineHeight: "1"
             }}
           >
             {englishClause}
@@ -42,8 +43,9 @@ function render(title: string, content: string, englishClause: string = "", viet
           <p
             style={{
               fontSize: "12px",
-              marginTop: "0px",
+              marginTop: "5px",
               color: "#333",
+              lineHeight: "1"
             }}
           >
             /{vietnameseClause}/
