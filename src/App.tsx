@@ -1,10 +1,11 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { FlashcardArray } from "react-quizlet-flashcard";
 import { ClimbingBoxLoader } from "react-spinners";
+import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react'
 import './App.css'
 import { callGemini } from './GeminiAPI';
 
-function render(title: string, content: string, englishClause: string = "", vietnameseClause: string = "") {
+function render(title: string, content: string, englishClause: string = "", vietnameseClause: string = "", pronunciation: string = "") {
   return (
     <div
       style={{
@@ -27,6 +28,18 @@ function render(title: string, content: string, englishClause: string = "", viet
         {title}
       </h3>
       <p style={{ fontSize: "16px", margin: 0, lineHeight: "1" }}>{content}</p>
+      {pronunciation.length !== 0 && (
+        <p
+          style={{
+            fontSize: "15px",
+            marginTop: "5px",
+            color: "#333",
+            lineHeight: "1"
+          }}
+        >
+          /{pronunciation}/
+        </p>
+      )}
       {englishClause.length !== 0 && vietnameseClause.length !== 0 && (
         <>
           <p
@@ -63,9 +76,10 @@ type Word = {
   week: string;
 };
 
-function parseDocContent(content: string): Word[] {
+function parseDocContent(content: string, weekFilter: string): { words: Word[]; weeks: string[] } {
   const lines = content.split('\n');
   const words: Word[] = [];
+  const weekSet = new Set<string>();
 
   let currentTag = "";
   let currentWeek = "";
@@ -76,6 +90,10 @@ function parseDocContent(content: string): Word[] {
     else if (/^_+$/.test(line)) continue;
     else if (line.startsWith('Week')) {
       currentWeek = line.trim();
+      weekSet.add(currentWeek);
+      continue;
+    }
+    else if (weekFilter != "All" && currentWeek != weekFilter) {
       continue;
     }
     else if (line.startsWith('*')) {
@@ -98,7 +116,10 @@ function parseDocContent(content: string): Word[] {
     }
   }
 
-  return words;
+  return {
+    words,
+    weeks: Array.from(weekSet)
+  };
 }
 
 function wordsToCards(words: Word[]) {
@@ -122,13 +143,15 @@ const override: CSSProperties = {
   display: "block",
   margin: "0 auto",
   borderColor: "#000000",
-};  
+};
 
 function App() {
   const docId = "1cba4NFq-IbZNaNnMw0WQDern05x3rD0wwhIYTEPlk48";
   const [cards, setCards] = useState<any[]>([]);
+  const [weeks, setWeeks] = useState<string[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<string>('All');
 
-  useEffect(() => {
+  const loadData = (weekFilter: string) => {
     const url = `https://docs.google.com/document/d/${docId}/export?format=txt`;
 
     fetch(url)
@@ -137,27 +160,43 @@ function App() {
         return res.text();
       })
       .then((text) => {
-        const words = parseDocContent(text);
+        const { words, weeks } = parseDocContent(text, weekFilter);
         const cardData = wordsToCards(words);
         setCards(cardData);
+        setWeeks(['All', ...weeks]);
       })
       .catch((err) => console.log(err.message));
+  };
+
+
+  useEffect(() => {
+    loadData(selectedWeek);
   }, [docId]);
+
+  useEffect(() => {
+    loadData(selectedWeek);
+  }, [selectedWeek]);
 
   const handleCardFlip = async (id: number | string, index: number) => {
     const card = cards[index];
-    const message = "Give me 1 short sentence example how to use the English word: " + card.key +
-     " follow the format: English sentence/translated to Vietnamese sentence/"
-    console.log("Message: " + message);
+    const message = "Give me the pronunciation and a short sentence example how to use the English word: " + card.key +
+      " only reply me with the format, don't say any more thing: <pronunciation>/<English sentence>/<translated to Vietnamese sentence>/"
     try {
       const response = await callGemini(message);
       const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parts = text.trim().replace(/\/$/, '').split('/');
-      const englishClause = parts[0];
-      const vietnameseClause = parts[1];
+      console.log("Response: " + text);
+
+      const parts = text
+        .split('/')
+        .map((part: string) => part.trim())
+        .filter((part: string) => part !== '');
+
+      const pronunciation = parts[0] || '';
+      const englishClause = parts[1] || '';
+      const vietnameseClause = parts[2] || '';
       setCards(prevCards =>
         prevCards.map(card =>
-          card.id === id ? { ...card, backHTML: render(card.tag, card.description, englishClause, vietnameseClause) } : card
+          card.id === id ? { ...card, backHTML: render(card.tag, card.description, englishClause, vietnameseClause, pronunciation) } : card
         )
       );
     } catch (error) {
@@ -168,7 +207,7 @@ function App() {
   if (cards.length === 0) {
     return (
       <div className="sweet-loading">
-        <ClimbingBoxLoader 
+        <ClimbingBoxLoader
           color={'#000000'}
           loading={true}
           cssOverride={override}
@@ -182,7 +221,34 @@ function App() {
 
   return (
     <div>
-      <FlashcardArray cards={cards} onCardFlip={handleCardFlip}/>
+      <div className="flex justify-center my-4">
+        <Listbox value={selectedWeek} onChange={(value) => {
+          setSelectedWeek(value);
+          loadData(value);
+        }}>
+          <div className="relative w-full">
+            <ListboxButton className="relative w-full cursor-pointer rounded-lg bg-white py-2 pl-3 pr-10 text-left shadow-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400">
+              {selectedWeek}
+            </ListboxButton>
+
+            <ListboxOptions
+              anchor="top"
+              className="absolute z-10 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5"
+            >
+              {weeks.map((week) => (
+                <ListboxOption
+                  key={week}
+                  value={week}
+                  className="cursor-pointer select-none py-2 pl-10 pr-4 data-[focus]:bg-blue-100 data-[focus]:text-blue-900 text-gray-900"
+                >
+                  {week}
+                </ListboxOption>
+              ))}
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
+      <FlashcardArray cards={cards} onCardFlip={handleCardFlip} />
     </div>
   );
 }
